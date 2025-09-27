@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Hava Durumu</title>
+    <!-- Tailwind CSS CDN'i -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS ve JS CDN'leri -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha2d-dofS0a3uY9C/2iT+Cq2gB2f8s0e7xY2e5e4jA9N5/sQ9D" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha2d-Xb9J+5+y6+2s3+g4h+t8+d9+f0+j2+r7+u9+v1+w4+x6+y8+z0+a2+b4+c6+d8+e0+f1+g3+h5+i7+j9+k1+l3+m5+n7+o9+p1+q3+r5+s7+t9+u1+v3+w5+x7+y9+z0+a2" crossorigin=""></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* Modern sofistike arka plan - Nötr tonlar */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #2D3748, #4A5568, #718096);
+            background-size: 300% 300%;
+            animation: modernBackgroundAnimation 25s ease infinite;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes modernBackgroundAnimation {
+            0%, 100% { background-position: 0% 50%; }
+            33% { background-position: 100% 50%; }
+            66% { background-position: 50% 100%; }
+        }
+
+        /* Modern hava durumu arka planları - Premium tonlar */
+        .clear-bg {
+            background: linear-gradient(135deg, #F7FAFC, #EDF2F7, #E2E8F0, #CBD5E0);
+            color: #2D3748 !important;
+        }
+
+        .clear-bg * {
+            color: #2D3748 !important;
+        }
+
+        .clear-bg .card {
+            background-color: rgba(45, 55, 72, 0.1);
+            border: 1px solid rgba(45, 55, 72, 0.2);
+        }
+
+        .rainy-bg {
+            background: linear-gradient(135deg, #4A5568, #718096, #A0AEC0);
+            animation: rainyAnimation 20s ease infinite;
+        }
+
+        @keyframes rainyAnimation {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .snowy-bg {
+            background: linear-gradient(135deg, #F7FAFC, #EDF2F7, #E2E8F0);
+            color: #2D3748 !important;
+            animation: snowyAnimation 22s ease infinite;
+        }
+
+        .snowy-bg * {
+            color: #2D3748 !important;
+        }
+
+        @keyframes snowyAnimation {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .foggy-bg {
+            background: linear-gradient(135deg, #A0AEC0, #CBD5E0, #E2E8F0);
+            color: #2D3748 !important;
+            animation: foggyAnimation 24s ease infinite;
+        }
+
+        .foggy-bg * {
+            color: #2D3748 !important;
+        }
+
+        @keyframes foggyAnimation {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        /* Modern başlangıç ekranı - Asimetrik düzen */
+        #start-screen {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-rows: 1fr auto auto auto 1fr;
+            gap: 2rem;
+            align-items: center;
+            text-align: left;
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .start-screen-content {
+            grid-column: 2;
+            grid-row: 2 / 5;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .start-screen-logo {
+            width: 140px;
+            height: 140px;
+            margin: 0 0 3rem 0;
+            filter: drop-shadow(0 8px 32px rgba(255, 255, 255, 0.2));
+            animation: floatingLogo 6s ease-in-out infinite;
+        }
+        
+        @keyframes floatingLogo {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-10px) rotate(2deg); }
+            66% { transform: translateY(5px) rotate(-1deg); }
+        }
+
+        .start-screen-input {
+            width: 100%;
+            max-width: none;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .start-screen-input:focus {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+        }
+        
+        .start-screen-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .modern-btn {
+            flex: 1;
+            padding: 1rem 2rem;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .modern-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .modern-btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(240, 147, 251, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(240, 147, 251, 0.4);
+        }
+        
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        /* Modern premium kart tasarımı */
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+        
+        .card:hover::before {
+            left: 100%;
+        }
+
+        /* Yükleniyor spinner'ı */
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modern kaydırılabilir konteyner */
+        .scroll-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            scroll-behavior: smooth;
+        }
+        .scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Scroll-triggered animasyonlar */
+        @keyframes slideInLeft {
+            0% { opacity: 0; transform: translateX(-50px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slideInUp {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .weather-detail-card {
+            animation: slideInUp 0.6s ease-out forwards;
+        }
+        
+        .daily-forecast-card {
+            animation: slideInUp 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        /* Hover mikroetkileşimler */
+        .weather-detail-card:hover {
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .daily-forecast-card:hover {
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Modern yükleme animasyonu */
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: modernSpin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+        
+        @keyframes modernSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Modern ikon efektleri */
+        #weather-icon {
+            filter: drop-shadow(0 8px 32px rgba(255, 255, 255, 0.3));
+            transition: all 0.5s ease-in-out;
+            animation: iconFloat 4s ease-in-out infinite;
+        }
+        
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-8px) rotate(1deg); }
+            66% { transform: translateY(4px) rotate(-0.5deg); }
+        }
+        
+        #weather-icon:hover {
+            filter: drop-shadow(0 12px 40px rgba(255, 255, 255, 0.5));
+            transform: scale(1.1);
+        }
+
+        .weather-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+            animation: bounceIn 1s ease-in-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3) rotate(-5deg); opacity: 0; }
+            50% { transform: scale(1.05) rotate(2deg); opacity: 0.8; }
+            70% { transform: scale(0.95) rotate(-1deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        
+        /* Modern tipografi hiyerarşisi */
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        /* Modern harita stili */
+        #map {
+            height: 450px;
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        /* Modern Bildirim Ayarları */
+        .notification-settings {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .notification-settings:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .notification-settings label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 12px;
+        }
+        
+        .notification-settings label:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .notification-settings input[type="radio"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            outline: none;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .notification-settings input[type="radio"]:checked {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+        }
+        
+        .notification-settings input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: white;
+            animation: radioCheck 0.3s ease;
+        }
+        
+        @keyframes radioCheck {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Ana Kapsayıcı -->
+    <div class="card p-8 w-full max-w-5xl text-white relative z-10">
+
+        <!-- Modern Başlangıç Ekranı -->
+        <div id="start-screen">
+            <div class="start-screen-content fade-in-up">
+                 <!-- Özel SVG Logosu -->
+                <svg class="start-screen-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="sunGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#E0F7FA;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#B3E5FC;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="65" cy="40" r="30" fill="url(#sunGradient)" />
+                    <path d="M 60,70 A 20,20 0 0 1 40,70 L 40,70 A 15,15 0 0 1 25,55 L 25,55 A 15,15 0 0 1 40,40 L 40,40 A 25,25 0 0 1 65,40 L 65,40 A 25,25 0 0 1 90,65 L 90,65 A 15,15 0 0 1 75,80 L 75,80 A 20,20 0 0 1 55,80 L 55,80" fill="url(#cloudGradient)" />
+                </svg>
+                <h1 id="app-title-start" class="hero-title">Hava Durumu</h1>
+                <p class="hero-subtitle">Anında doğru hava durumu bilgisi ve detaylı tahminler</p>
+                <input type="text" id="city-input-start" placeholder="Şehir adını girin..." class="start-screen-input">
+                <div class="start-screen-buttons">
+                    <button id="get-weather-btn-start" class="modern-btn btn-primary">
+                        Hava Durumunu Al
+                    </button>
+                    <button id="get-location-btn-start" class="modern-btn btn-secondary">
+                        Konumumu Kullan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ana Uygulama Arayüzü (gizli) -->
+        <div id="main-app" class="hidden">
+            <!-- Özel SVG Logosu -->
+            <svg class="weather-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="sunGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#E0F7FA;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#B3E5FC;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="65" cy="40" r="30" fill="url(#sunGradient)" />
+                <path d="M 60,70 A 20,20 0 0 1 40,70 L 40,70 A 15,15 0 0 1 25,55 L 25,55 A 15,15 0 0 1 40,40 L 40,40 A 25,25 0 0 1 65,40 L 65,40 A 25,25 0 0 1 90,65 L 90,65 A 15,15 0 0 1 75,80 L 75,80 A 20,20 0 0 1 55,80 L 55,80" fill="url(#cloudGradient)" />
+            </svg>
+
+            <h1 id="app-title" class="text-3xl font-bold text-center mb-6">Hava Durumu</h1>
+
+            <!-- Dil ve Ayarlar Alanı -->
+            <div class="flex justify-between items-center mb-6">
+                <p id="language-label" class="text-sm font-light text-white/70">Dil Seçin:</p>
+                <div class="flex space-x-2">
+                    <button data-lang="tr" class="p-2 rounded-lg bg-sky-500 hover:bg-sky-600 transition-colors duration-300 font-semibold text-white/90">TR</button>
+                    <button data-lang="en" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors duration-300 font-semibold text-white/70">EN</button>
+                    <button data-lang="de" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors duration-300 font-semibold text-white/70">DE</button>
+                </div>
+            </div>
+
+            <!-- Modern Bildirim Ayarları -->
+            <div class="notification-settings mb-8 p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 rounded-lg bg-blue-500/20">
+                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                        </svg>
+                    </div>
+                    <h3 id="notifications-title" class="text-xl font-semibold">Akııllı Bildirimler</h3>
+                </div>
+                <div class="flex items-center justify-between mb-6 p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div>
+                        <span id="enable-notifications-label" class="font-medium">Bildirim Sistemi</span>
+                        <p class="text-sm text-white/60 mt-1">Otomatik hava durumu güncellemeleri</p>
+                    </div>
+                    <label for="notification-toggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" value="" id="notification-toggle" class="sr-only peer">
+                        <div class="w-14 h-7 bg-white/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-purple-500"></div>
+                    </label>
+                </div>
+                <div id="notification-interval-container" class="hidden">
+                    <span id="interval-label" class="block text-sm font-medium text-white/80 mb-4">Bildirim Aralığı:</span>
+                    <div class="grid grid-cols-3 gap-3">
+                        <label class="text-center">
+                            <input type="radio" name="interval" value="10" checked>
+                            <span class="font-medium">10 dk</span>
+                        </label>
+                        <label class="text-center">
+                            <input type="radio" name="interval" value="60">
+                            <span class="font-medium">1 saat</span>
+                        </label>
+                        <label class="text-center">
+                            <input type="radio" name="interval" value="240">
+                            <span class="font-medium">4 saat</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="notification-denied-message" class="hidden text-sm text-red-300 mt-4 p-3 rounded-2xl bg-red-500/10 border border-red-500/20">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Bildirim izni gerekli. Lütfen tarayıcı ayarlarınızdan etkinleştirin.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modern Favori Şehirler Alanı -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-white/90">Favori Lokasyonlar</h3>
+                <div id="favorites-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Favori şehirler buraya eklenecek -->
+                </div>
+            </div>
+
+            <!-- Modern Kontrol Alanı -->
+            <div class="mb-8">
+                <div class="grid md:grid-cols-4 gap-4 mb-4">
+                    <input type="text" id="city-input" placeholder="Şehir adını girin..." class="md:col-span-2 p-4 rounded-2xl border-2 border-white/20 bg-white/8 backdrop-blur-lg text-white placeholder-white/60 focus:outline-none focus:border-white/40 focus:bg-white/12 transition-all duration-300">
+                    <button id="get-weather-btn" class="modern-btn btn-primary">
+                        🌦️ Hava Durumu
+                    </button>
+                    <button id="get-location-btn" class="modern-btn btn-secondary">
+                        📍 Konumum
+                    </button>
+                </div>
+                <button id="show-map-btn" class="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-white hover:from-emerald-500/30 hover:to-teal-500/30 transition-all duration-300 font-semibold">
+                    🗺️ Haritadan Konum Seç
+                </button>
+            </div>
+
+            <!-- Harita Alanı -->
+            <div id="map-container" class="hidden my-6">
+                <div id="map" class="rounded-xl"></div>
+                <p id="map-instructions" class="text-center text-sm text-white/80 mt-2">Hava durumunu öğrenmek için haritada bir konuma tıklayın.</p>
+            </div>
+
+            <!-- Yükleniyor Göstergesi -->
+            <div id="loading-indicator" class="hidden flex-col items-center justify-center py-8 text-center space-y-4">
+                <div class="loading-spinner"></div>
+                <p id="loading-text" class="text-white text-lg font-bold animate-pulse">Veriler yükleniyor...</p>
+            </div>
+            
+            <!-- Çevrimdışı Mod Uyarısı -->
+            <div id="offline-message" class="hidden text-center mt-4 p-3 rounded-xl bg-yellow-400 text-yellow-900 font-medium">
+                <p>İnternet bağlantınız yok. En son kaydedilen veriler gösteriliyor.</p>
+            </div>
+
+            <!-- Hata Mesajı Alanı -->
+            <div id="error-message" class="hidden text-center mt-4 text-red-300">
+                <p></p>
+            </div>
+
+            <!-- Hava Durumu Sonuç Alanı -->
+            <div id="weather-result" class="hidden text-center mt-6">
+                <!-- Ana Güncel Hava Durumu Bilgileri -->
+                <div class="mb-4 relative">
+                    <h2 id="weather-city" class="text-3xl sm:text-4xl font-bold mb-2"></h2>
+                    <button id="add-favorite-btn" class="absolute top-0 right-0 p-2 text-sky-300 hover:text-sky-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a.999.999 0 00-1.414 0L6 10.586l-1.293-1.293a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 000-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <!-- Canlı Saat ve Tarih Bilgisi -->
+                    <p id="live-datetime" class="text-sm text-white/70 mb-4"></p>
+                    <img id="weather-icon" src="" alt="Hava Durumu İkonu" class="mx-auto">
+                    <p id="weather-description" class="text-lg mb-4"></p>
+                    <div class="flex items-center justify-center space-x-4 mb-4">
+                        <p id="weather-temp" class="text-6xl font-extrabold"></p>
+                        <p class="text-5xl font-extrabold">&deg;C</p>
+                    </div>
+                </div>
+
+                <!-- Modern Detaylı Bilgiler - Asimetrik Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Sol kolon - Büyük kart -->
+                    <div class="md:col-span-2 grid grid-cols-2 gap-4">
+                        <div class="weather-detail-card p-6 rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-blue-500/20">
+                                    <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="feels-like-label" class="text-sm font-medium text-white/70">Hissedilen</p>
+                            </div>
+                            <p id="weather-feels-like" class="text-2xl font-bold"></p>
+                        </div>
+                        <div class="weather-detail-card p-6 rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-cyan-500/20">
+                                    <svg class="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="humidity-label" class="text-sm font-medium text-white/70">Nem</p>
+                            </div>
+                            <p id="weather-humidity" class="text-2xl font-bold"></p>
+                        </div>
+                        <div class="weather-detail-card p-6 rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-green-500/20">
+                                    <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="wind-speed-label" class="text-sm font-medium text-white/70">Rüzgar Hızı</p>
+                            </div>
+                            <p id="weather-wind-speed" class="text-2xl font-bold"></p>
+                        </div>
+                        <div class="weather-detail-card p-6 rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-purple-500/20">
+                                    <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="wind-direction-label" class="text-sm font-medium text-white/70">Rüzgar Yönü</p>
+                            </div>
+                            <p id="weather-wind-deg" class="text-2xl font-bold"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Sağ kolon - Dikey kartlar -->
+                    <div class="flex flex-col gap-4">
+                        <div class="weather-detail-card p-6 rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-orange-500/20">
+                                    <svg class="w-5 h-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="pressure-label" class="text-sm font-medium text-white/70">Basınç</p>
+                            </div>
+                            <p id="weather-pressure" class="text-xl font-bold"></p>
+                        </div>
+                        <div class="weather-detail-card p-6 rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 rounded-lg bg-indigo-500/20">
+                                    <svg class="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="visibility-label" class="text-sm font-medium text-white/70">Görüş Mesafesi</p>
+                            </div>
+                            <p id="weather-visibility" class="text-xl font-bold"></p>
+                        </div>
+                        <!-- Hava Kalitesi - Tam kolon -->
+                        <div id="air-quality-card" class="weather-detail-card p-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 backdrop-blur-lg border border-emerald-500/20 hover:from-emerald-500/15 hover:to-teal-500/15 transition-all duration-300 transform hover:-translate-y-1 hidden">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 rounded-lg bg-emerald-500/20">
+                                    <svg class="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p id="aqi-label" class="text-sm font-medium text-white/70">Hava Kalitesi</p>
+                            </div>
+                            <p id="air-quality-index" class="text-2xl font-bold mb-1"></p>
+                            <p id="air-quality-level" class="text-sm text-white/80"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modern Saatlik Tahminler -->
+                <div class="mb-8">
+                    <h3 id="hourly-forecast-title" class="text-3xl font-bold text-left mb-6 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">48 Saatlik Tahmin</h3>
+                    <div id="hourly-forecast-container" class="scroll-container flex space-x-6 overflow-x-auto pb-6 px-2">
+                        <!-- Saatlik tahminler buraya eklenecek -->
+                    </div>
+                </div>
+
+                <!-- Modern Günlük Tahminler -->
+                <div>
+                    <h3 id="daily-forecast-title" class="text-3xl font-bold text-left mb-6 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">5 Günlük Tahmin</h3>
+                    <div id="daily-forecast-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                        <!-- Günlük tahminler buraya eklenecek -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Alanı -->
+    <script>
+        const apiKey = 'aee9368ab4b3e538bec75d39005eccf3';
+        
+        // HTML elemanlarını seçme
+        const startScreen = document.getElementById('start-screen');
+        const mainApp = document.getElementById('main-app');
+        const cityInputStart = document.getElementById('city-input-start');
+        const getWeatherBtnStart = document.getElementById('get-weather-btn-start');
+        const getLocationBtnStart = document.getElementById('get-location-btn-start');
+        
+        const cityInput = document.getElementById('city-input');
+        const getWeatherBtn = document.getElementById('get-weather-btn');
+        const getLocationBtn = document.getElementById('get-location-btn');
+        const showMapBtn = document.getElementById('show-map-btn');
+        const mapContainer = document.getElementById('map-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const weatherResult = document.getElementById('weather-result');
+        const errorMessage = document.getElementById('error-message');
+        const hourlyForecastContainer = document.getElementById('hourly-forecast-container');
+        const dailyForecastContainer = document.getElementById('daily-forecast-container');
+        const liveDatetimeElement = document.getElementById('live-datetime');
+        const bodyElement = document.body;
+        const favoritesContainer = document.getElementById('favorites-container');
+        const addFavoriteBtn = document.getElementById('add-favorite-btn');
+        const offlineMessage = document.getElementById('offline-message');
+        const langButtons = document.querySelectorAll('[data-lang]');
+        
+        // Yeni bildirim elemanları
+        const notificationToggle = document.getElementById('notification-toggle');
+        const notificationIntervalContainer = document.getElementById('notification-interval-container');
+        const notificationIntervals = document.querySelectorAll('input[name="interval"]');
+        const notificationsDeniedMessage = document.getElementById('notification-denied-message');
+
+        // Hava durumu verilerini gösterecek elemanlar
+        const weatherCity = document.getElementById('weather-city');
+        const weatherIcon = document.getElementById('weather-icon');
+        const weatherDescription = document.getElementById('weather-description');
+        const weatherTemp = document.getElementById('weather-temp');
+        const weatherFeelsLike = document.getElementById('weather-feels-like');
+        const weatherHumidity = document.getElementById('weather-humidity');
+        const weatherWindSpeed = document.getElementById('weather-wind-speed');
+        const weatherWindDeg = document.getElementById('weather-wind-deg');
+        const weatherPressure = document.getElementById('weather-pressure');
+        const weatherVisibility = document.getElementById('weather-visibility');
+        const airQualityCard = document.getElementById('air-quality-card');
+        const airQualityIndex = document.getElementById('air-quality-index');
+        const airQualityLevel = document.getElementById('air-quality-level');
+        const hourlyForecastTitle = document.getElementById('hourly-forecast-title');
+        const dailyForecastTitle = document.getElementById('daily-forecast-title');
+        
+        let map, marker;
+        let currentCityData = null;
+        let currentLanguage = 'tr';
+        let translations = {};
+        let notificationTimer = null;
+
+        // Sayfa yüklendiğinde dil, bildirimler ve favorileri ayarla
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadTranslations();
+            loadCurrentLanguage();
+            loadNotificationSettings();
+            renderFavorites();
+            updateLiveDateTime();
+            setInterval(updateLiveDateTime, 1000);
+            
+            // Çevrimdışı modda en son veriyi yükle
+            if (!navigator.onLine) {
+                loadOfflineData();
+            }
+        });
+
+        // Çevirileri yükleme
+        async function loadTranslations() {
+            translations = {
+                'tr': {
+                    'app-title': 'Hava Durumu',
+                    'language-label': 'Dil Seçin:',
+                    'city-placeholder': 'Şehir adını girin...',
+                    'get-weather-btn': 'Hava Durumunu Al',
+                    'get-location-btn': 'Konumumu Kullan',
+                    'show-map-btn': 'Haritadan Seç',
+                    'map-instructions': 'Hava durumunu öğrenmek için haritada bir konuma tıklayın.',
+                    'loading-text': 'Veriler yükleniyor...',
+                    'offline-message': 'İnternet bağlantınız yok. En son kaydedilen veriler gösteriliyor.',
+                    'error-404': 'Girdiğiniz şehir bulunamadı. Lütfen kontrol edip tekrar deneyin.',
+                    'error-api': 'API anahtarınızda veya istekte bir hata oluştu. Lütfen geçerli bir anahtar kullandığınızdan emin olun.',
+                    'error-network': 'İnternet bağlantınızda veya API çağrısında bir sorun oluştu.',
+                    'error-geo': 'Konumunuz alınamadı. Lütfen tarayıcınızın konum iznini kontrol edin.',
+                    'error-geo-unsupported': 'Tarayıcınız coğrafi konumu desteklemiyor.',
+                    'feels-like-label': 'Hissedilen',
+                    'humidity-label': 'Nem',
+                    'wind-speed-label': 'Rüzgar Hızı',
+                    'wind-direction-label': 'Rüzgar Yönü',
+                    'pressure-label': 'Basınç',
+                    'visibility-label': 'Görüş Mesafesi',
+                    'aqi-label': 'Hava Kalitesi Endeksi',
+                    'aqi-good': 'İyi',
+                    'aqi-moderate': 'Orta',
+                    'aqi-sensitive': 'Hassas',
+                    'aqi-unhealthy': 'Kötü',
+                    'aqi-very-unhealthy': 'Çok Kötü',
+                    'hourly-forecast-title': '48 Saatlik Tahmin (3 Saatlik Aralıklarla)',
+                    'daily-forecast-title': '5 Günlük Tahmin',
+                    'today': 'Bugün',
+                    'tomorrow': 'Yarın',
+                    'north': 'Kuzey', 'nne': 'Kuzey-Kuzeydoğu', 'ne': 'Kuzeydoğu', 'ene': 'Doğu-Kuzeydoğu', 'east': 'Doğu', 'ese': 'Doğu-Güneydoğu', 'se': 'Güneydoğu', 'sse': 'Güney-Güneydoğu', 'south': 'Güney', 'ssw': 'Güney-Güneybatı', 'sw': 'Güneybatı', 'wsw': 'Batı-Güneybatı', 'west': 'Batı', 'wnw': 'Batı-Kuzeybatı', 'nw': 'Kuzeybatı', 'nnw': 'Kuzey-Kuzeybatı',
+                    'no-favorites': 'Favori şehir bulunamadı.',
+                    'offline-data-displayed': 'Çevrimdışı moda geçildi, kaydedilen veriler gösteriliyor.',
+                    'notifications-title': 'Bildirim Ayarları',
+                    'enable-notifications-label': 'Bildirimleri Etkinleştir',
+                    'interval-label': 'Bildirim Sıklığı:',
+                    'notification-denied-message': 'Bildirim izni reddedildi. Lütfen tarayıcı ayarlarınızdan izin verin.',
+                    'notification-title': (city) => `${city} için Hava Durumu`,
+                    'notification-body': (temp, desc) => `Sıcaklık: ${Math.round(temp)}°C, ${desc}.`,
+                },
+                'en': {
+                    'app-title': 'Weather App',
+                    'language-label': 'Select Language:',
+                    'city-placeholder': 'Enter city name...',
+                    'get-weather-btn': 'Get Weather',
+                    'get-location-btn': 'Use My Location',
+                    'show-map-btn': 'Select from Map',
+                    'map-instructions': 'Click on a location on the map to get the weather.',
+                    'loading-text': 'Loading data...',
+                    'offline-message': 'No internet connection. Displaying last saved data.',
+                    'error-404': 'The city you entered was not found. Please check and try again.',
+                    'error-api': 'There was an error with your API key or request. Please ensure you are using a valid key.',
+                    'error-network': 'There was a problem with your internet connection or the API call.',
+                    'error-geo': 'Could not get your location. Please check your browser\'s location permission.',
+                    'error-geo-unsupported': 'Your browser does not support geolocation.',
+                    'feels-like-label': 'Feels Like',
+                    'humidity-label': 'Humidity',
+                    'wind-speed-label': 'Wind Speed',
+                    'wind-direction-label': 'Wind Direction',
+                    'pressure-label': 'Pressure',
+                    'visibility-label': 'Visibility',
+                    'aqi-label': 'Air Quality Index',
+                    'aqi-good': 'Good',
+                    'aqi-moderate': 'Moderate',
+                    'aqi-sensitive': 'Unhealthy for Sensitive Groups',
+                    'aqi-unhealthy': 'Unhealthy',
+                    'aqi-very-unhealthy': 'Very Unhealthy',
+                    'hourly-forecast-title': '48-Hour Forecast (3-Hour Intervals)',
+                    'daily-forecast-title': '5-Day Forecast',
+                    'today': 'Today',
+                    'tomorrow': 'Tomorrow',
+                    'north': 'North', 'nne': 'North-Northeast', 'ne': 'Northeast', 'ene': 'East-Northeast', 'east': 'East', 'ese': 'East-Southeast', 'se': 'Southeast', 'sse': 'South-Southeast', 'south': 'South', 'ssw': 'South-Southwest', 'sw': 'Southwest', 'wsw': 'West-Southwest', 'west': 'West', 'wnw': 'West-Northwest', 'nw': 'Northwest', 'nnw': 'North-Northwest',
+                    'no-favorites': 'No favorite cities found.',
+                    'offline-data-displayed': 'Switched to offline mode, displaying saved data.',
+                    'notifications-title': 'Notification Settings',
+                    'enable-notifications-label': 'Enable Notifications',
+                    'interval-label': 'Notification Interval:',
+                    'notification-denied-message': 'Notification permission denied. Please allow it in your browser settings.',
+                    'notification-title': (city) => `Weather for ${city}`,
+                    'notification-body': (temp, desc) => `Temp: ${Math.round(temp)}°C, ${desc}.`,
+                },
+                'de': {
+                    'app-title': 'Wetter App',
+                    'language-label': 'Sprache auswählen:',
+                    'city-placeholder': 'Städtenamen eingeben...',
+                    'get-weather-btn': 'Wetter abrufen',
+                    'get-location-btn': 'Meinen Standort verwenden',
+                    'show-map-btn': 'Von der Karte auswählen',
+                    'map-instructions': 'Klicken Sie auf eine Stelle auf der Karte, um das Wetter abzurufen.',
+                    'loading-text': 'Daten werden geladen...',
+                    'offline-message': 'Keine Internetverbindung. Die zuletzt gespeicherten Daten werden angezeigt.',
+                    'error-404': 'Die eingegebene Stadt wurde nicht gefunden. Bitte überprüfen Sie sie und versuchen Sie es erneut.',
+                    'error-api': 'Es gab einen Fehler mit Ihrem API-Schlüssel oder der Anfrage. Stellen Sie sicher, dass Sie einen gültigen Schlüssel verwenden.',
+                    'error-network': 'Es gab ein Problem mit Ihrer Internetverbindung oder dem API-Aufruf.',
+                    'error-geo': 'Ihr Standort konnte nicht ermittelt werden. Bitte überprüfen Sie die Standortberechtigung Ihres Browsers.',
+                    'error-geo-unsupported': 'Ihr Browser unterstützt Geolocation nicht.',
+                    'feels-like-label': 'Gefühlte Temperatur',
+                    'humidity-label': 'Feuchtigkeit',
+                    'wind-speed-label': 'Windgeschwindigkeit',
+                    'wind-direction-label': 'Windrichtung',
+                    'pressure-label': 'Druck',
+                    'visibility-label': 'Sichtweite',
+                    'aqi-label': 'Luftqualitätsindex',
+                    'aqi-good': 'Gut',
+                    'aqi-moderate': 'Mäßig',
+                    'aqi-sensitive': 'Ungesund für empfindliche Gruppen',
+                    'aqi-unhealthy': 'Ungesund',
+                    'aqi-very-unhealthy': 'Sehr ungesund',
+                    'hourly-forecast-title': '48-Stunden-Vorhersage (3-Stunden-Intervalle)',
+                    'daily-forecast-title': '5-Tage-Vorhersage',
+                    'today': 'Heute',
+                    'tomorrow': 'Morgen',
+                    'north': 'Norden', 'nne': 'Nord-Nordost', 'ne': 'Nordost', 'ene': 'Ost-Nordost', 'east': 'Osten', 'ese': 'Ost-Südost', 'se': 'Südost', 'sse': 'Süd-Südost', 'south': 'Süden', 'ssw': 'Süd-Südwest', 'sw': 'Südwest', 'wsw': 'West-Südwest', 'west': 'Westen', 'wnw': 'West-Nordwest', 'nw': 'Nordwest', 'nnw': 'Nord-Nordwest',
+                    'no-favorites': 'Keine Lieblingsstädte gefunden.',
+                    'offline-data-displayed': 'In den Offline-Modus gewechselt, gespeicherte Daten werden angezeigt.',
+                    'notifications-title': 'Benachrichtigungseinstellungen',
+                    'enable-notifications-label': 'Benachrichtigungen aktivieren',
+                    'interval-label': 'Benachrichtigungsintervall:',
+                    'notification-denied-message': 'Benachrichtigungsberechtigung verweigert. Bitte in den Browsereinstellungen erlauben.',
+                    'notification-title': (city) => `Wetter für ${city}`,
+                    'notification-body': (temp, desc) => `Temp: ${Math.round(temp)}°C, ${desc}.`,
+                }
+            };
+        }
+
+        // Dil ayarını kaydetme ve yükleme
+        function saveLanguage(lang) {
+            localStorage.setItem('appLanguage', lang);
+            currentLanguage = lang;
+            updateUI();
+        }
+
+        function loadCurrentLanguage() {
+            const savedLang = localStorage.getItem('appLanguage');
+            if (savedLang && translations[savedLang]) {
+                currentLanguage = savedLang;
+            } else {
+                currentLanguage = 'tr';
+            }
+            updateUI();
+        }
+
+        // Bildirim ayarlarını kaydetme ve yükleme
+        function saveNotificationSettings() {
+            localStorage.setItem('notificationsEnabled', notificationToggle.checked);
+            localStorage.setItem('notificationInterval', document.querySelector('input[name="interval"]:checked').value);
+        }
+
+        function loadNotificationSettings() {
+            const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+            const interval = localStorage.getItem('notificationInterval') || '10';
+            notificationToggle.checked = enabled;
+            
+            if (enabled) {
+                notificationIntervalContainer.classList.remove('hidden');
+                startNotificationTimer(parseInt(interval, 10));
+            } else {
+                notificationIntervalContainer.classList.add('hidden');
+                stopNotificationTimer();
+            }
+
+            const radio = document.querySelector(`input[name="interval"][value="${interval}"]`);
+            if (radio) radio.checked = true;
+            
+            checkNotificationPermissionStatus();
+        }
+        
+        // Bildirim izin durumunu kontrol et
+        function checkNotificationPermissionStatus() {
+            if (Notification.permission === 'denied') {
+                notificationsDeniedMessage.classList.remove('hidden');
+                notificationToggle.disabled = true;
+            } else {
+                notificationsDeniedMessage.classList.add('hidden');
+                notificationToggle.disabled = false;
+            }
+        }
+
+        // Kullanıcı arayüzünü güncelleyen fonksiyon
+        function updateUI() {
+            const lang = currentLanguage;
+            document.documentElement.lang = lang;
+            
+            // Metinleri çevir
+            document.getElementById('app-title').textContent = translations[lang]['app-title'];
+            document.getElementById('app-title-start').textContent = translations[lang]['app-title'];
+            document.getElementById('city-input-start').placeholder = translations[lang]['city-placeholder'];
+            document.getElementById('get-weather-btn-start').textContent = translations[lang]['get-weather-btn'];
+            document.getElementById('get-location-btn-start').textContent = translations[lang]['get-location-btn'];
+
+            document.getElementById('language-label').textContent = translations[lang]['language-label'];
+            document.getElementById('city-input').placeholder = translations[lang]['city-placeholder'];
+            document.getElementById('get-weather-btn').textContent = translations[lang]['get-weather-btn'];
+            document.getElementById('get-location-btn').textContent = translations[lang]['get-location-btn'];
+            document.getElementById('show-map-btn').textContent = translations[lang]['show-map-btn'];
+            document.getElementById('map-instructions').textContent = translations[lang]['map-instructions'];
+            document.getElementById('loading-text').textContent = translations[lang]['loading-text'];
+            document.getElementById('offline-message').querySelector('p').textContent = translations[lang]['offline-message'];
+            document.getElementById('feels-like-label').textContent = translations[lang]['feels-like-label'];
+            document.getElementById('humidity-label').textContent = translations[lang]['humidity-label'];
+            document.getElementById('wind-speed-label').textContent = translations[lang]['wind-speed-label'];
+            document.getElementById('wind-direction-label').textContent = translations[lang]['wind-direction-label'];
+            document.getElementById('pressure-label').textContent = translations[lang]['pressure-label'];
+            document.getElementById('visibility-label').textContent = translations[lang]['visibility-label'];
+            document.getElementById('aqi-label').textContent = translations[lang]['aqi-label'];
+            hourlyForecastTitle.textContent = translations[lang]['hourly-forecast-title'];
+            dailyForecastTitle.textContent = translations[lang]['daily-forecast-title'];
+            document.getElementById('notifications-title').textContent = translations[lang]['notifications-title'];
+            document.getElementById('enable-notifications-label').textContent = translations[lang]['enable-notifications-label'];
+            document.getElementById('interval-label').textContent = translations[lang]['interval-label'];
+            document.getElementById('notification-denied-message').textContent = translations[lang]['notification-denied-message'];
+
+            // Mevcut verileri tekrar render et
+            if (weatherResult.classList.contains('hidden') === false) {
+                const lastData = localStorage.getItem('lastWeatherData');
+                if (lastData) {
+                    const data = JSON.parse(lastData);
+                    renderWeatherData(data.weatherData, data.aqiData);
+                }
+            }
+        }
+
+        // Dil butonu tıklamalarını dinle
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                saveLanguage(btn.dataset.lang);
+            });
+        });
+
+        // Bildirim etkinleştirme/devre dışı bırakma
+        notificationToggle.addEventListener('change', async () => {
+            if (notificationToggle.checked) {
+                const permission = await requestNotificationPermission();
+                if (permission === 'granted') {
+                    notificationIntervalContainer.classList.remove('hidden');
+                    startNotificationTimer(parseInt(document.querySelector('input[name="interval"]:checked').value, 10));
+                } else {
+                    notificationToggle.checked = false;
+                }
+            } else {
+                notificationIntervalContainer.classList.add('hidden');
+                stopNotificationTimer();
+            }
+            saveNotificationSettings();
+        });
+        
+        // Bildirim sıklığını değiştirme
+        notificationIntervals.forEach(radio => {
+            radio.addEventListener('change', () => {
+                stopNotificationTimer();
+                startNotificationTimer(parseInt(radio.value, 10));
+                saveNotificationSettings();
+            });
+        });
+
+        // Bildirim izni isteme
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.error("This browser does not support desktop notification");
+                return 'unsupported';
+            }
+            const permission = await Notification.requestPermission();
+            checkNotificationPermissionStatus();
+            return permission;
+        }
+
+        // Bildirim gönderme
+        function sendWeatherNotification() {
+            if (Notification.permission !== 'granted') return;
+            
+            const lastData = localStorage.getItem('lastWeatherData');
+            if (!lastData) return;
+            
+            const data = JSON.parse(lastData);
+            const city = data.weatherData.city.name;
+            const current = data.weatherData.list[0];
+            const temp = current.main.temp;
+            const desc = current.weather[0].description.charAt(0).toUpperCase() + current.weather[0].description.slice(1);
+            
+            new Notification(translations[currentLanguage]['notification-title'](city), {
+                body: translations[currentLanguage]['notification-body'](temp, desc),
+                icon: `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`
+            });
+        }
+        
+        // Bildirim zamanlayıcısını başlatma
+        function startNotificationTimer(intervalMinutes) {
+            stopNotificationTimer();
+            // Interval in milliseconds
+            const intervalMs = intervalMinutes * 60 * 1000;
+            notificationTimer = setInterval(sendWeatherNotification, intervalMs);
+            console.log(`Notification timer started for every ${intervalMinutes} minutes.`);
+        }
+
+        // Bildirim zamanlayıcısını durdurma
+        function stopNotificationTimer() {
+            if (notificationTimer) {
+                clearInterval(notificationTimer);
+                console.log('Notification timer stopped.');
+            }
+        }
+        
+        // Harita göster/gizle
+        showMapBtn.addEventListener('click', () => {
+            if (mapContainer.classList.contains('hidden')) {
+                mapContainer.classList.remove('hidden');
+                initializeMap();
+            } else {
+                mapContainer.classList.add('hidden');
+            }
+        });
+
+        // Haritayı başlatma fonksiyonu
+        function initializeMap() {
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+
+            map = L.map('map').setView([38.9637, 35.2433], 6); // Türkiye'ye odaklan
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            map.on('click', onMapClick);
+        }
+
+        // Haritaya tıklama olayını işleme
+        async function onMapClick(e) {
+            if (!navigator.onLine) {
+                showError(translations[currentLanguage]['offline-data-displayed']);
+                return;
+            }
+            const { lat, lng } = e.latlng;
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([lat, lng]).addTo(map)
+                .bindPopup(translations[currentLanguage]['map-instructions']).openPopup();
+
+            loadingState();
+            const weatherData = await getWeatherData({ lat, lon: lng });
+            if (weatherData) {
+                const aqiData = await getAirQualityData({ lat, lon: lng });
+                renderWeatherData(weatherData, aqiData);
+                saveOfflineData(weatherData, aqiData);
+            }
+            loadingState(false);
+        }
+
+        // Unix zaman damgasını gün adlarına dönüştürme fonksiyonu
+        function getDayName(unixTimestamp, lang) {
+            const date = new Date(unixTimestamp * 1000);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+
+            const options = { weekday: 'long' };
+            
+            if (date.toDateString() === today.toDateString()) {
+                return translations[lang]['today'];
+            } else if (date.toDateString() === tomorrow.toDateString()) {
+                return translations[lang]['tomorrow'];
+            } else {
+                const dayName = date.toLocaleDateString(lang, options);
+                return dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            }
+        }
+        
+        // Dereceyi yön adlarına dönüştürme fonksiyonu
+        function degToDirection(deg, lang) {
+            const directions = ['north', 'nne', 'ne', 'ene', 'east', 'ese', 'se', 'sse', 'south', 'ssw', 'sw', 'wsw', 'west', 'wnw', 'nw', 'nnw'];
+            const index = Math.round(deg / 22.5);
+            return translations[lang][directions[index % 16]];
+        }
+
+        // Hava durumu verilerini alacak asenkron fonksiyon
+        async function getWeatherData(param) {
+            if (!navigator.onLine) {
+                showError(translations[currentLanguage]['offline-data-displayed']);
+                loadOfflineData();
+                return null;
+            }
+            
+            offlineMessage.classList.add('hidden');
+            let apiUrl = '';
+
+            // Parametrenin şehir adı mı yoksa koordinat mı olduğunu kontrol et
+            if (param.city) {
+                apiUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${param.city}&appid=${apiKey}&units=metric&lang=${currentLanguage}`;
+            } else if (param.lat && param.lon) {
+                apiUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${param.lat}&lon=${param.lon}&appid=${apiKey}&units=metric&lang=${currentLanguage}`;
+            } else {
+                showError('Geçersiz parametreler.');
+                return null;
+            }
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showError(translations[currentLanguage]['error-404']);
+                    } else {
+                        showError(translations[currentLanguage]['error-api']);
+                    }
+                    return null;
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('API çağrısı hatası:', error);
+                showError(translations[currentLanguage]['error-network']);
+                return null;
+            }
+        }
+        
+        // Hava Kalitesi verilerini alacak asenkron fonksiyon
+        async function getAirQualityData(param) {
+            if (!navigator.onLine) return null;
+            
+            let apiUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${param.lat}&lon=${param.lon}&appid=${apiKey}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    console.error('Hava kalitesi API hatası:', response.status);
+                    return null;
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Hava kalitesi API çağrısı hatası:', error);
+                return null;
+            }
+        }
+
+        // Hava kalitesi verilerini ekrana yazma fonksiyonu
+        function renderAirQuality(data) {
+            if (!data) {
+                airQualityCard.classList.add('hidden');
+                return;
+            }
+            const aqi = data.list[0].main.aqi;
+            let level = '';
+            switch(aqi) {
+                case 1: level = translations[currentLanguage]['aqi-good']; break;
+                case 2: level = translations[currentLanguage]['aqi-moderate']; break;
+                case 3: level = translations[currentLanguage]['aqi-sensitive']; break;
+                case 4: level = translations[currentLanguage]['aqi-unhealthy']; break;
+                case 5: level = translations[currentLanguage]['aqi-very-unhealthy']; break;
+            }
+            airQualityIndex.textContent = `${aqi}`;
+            airQualityLevel.textContent = level;
+            airQualityCard.classList.remove('hidden');
+        }
+
+        // Hava durumu verilerini ekrana yazma fonksiyonu
+        function renderWeatherData(weatherData, aqiData) {
+            currentCityData = weatherData.city;
+            const current = weatherData.list[0];
+            weatherCity.textContent = weatherData.city.name;
+            weatherIcon.src = `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`;
+            weatherDescription.textContent = current.weather[0].description.charAt(0).toUpperCase() + current.weather[0].description.slice(1);
+            weatherTemp.textContent = Math.round(current.main.temp);
+            weatherFeelsLike.textContent = `${Math.round(current.main.feels_like)}°C`;
+            weatherHumidity.textContent = `${current.main.humidity}%`;
+            weatherWindSpeed.textContent = `${(current.wind.speed * 3.6).toFixed(1)} km/s`;
+            weatherWindDeg.textContent = degToDirection(current.wind.deg, currentLanguage);
+            weatherPressure.textContent = `${current.main.pressure} hPa`;
+            weatherVisibility.textContent = `${(current.visibility / 1000).toFixed(1)} km`;
+            
+            weatherResult.classList.remove('hidden');
+
+            // Arka planı hava durumuna göre güncelle
+            updateBackground(current.weather[0].main);
+
+            // Favori ekleme butonunu güncelle
+            updateFavoriteButtonState();
+
+            // Hava kalitesini render et
+            renderAirQuality(aqiData);
+
+            // Modern saatlik tahminleri oluştur
+            hourlyForecastContainer.innerHTML = '';
+            weatherData.list.slice(0, 8).forEach((hour, index) => {
+                const time = new Date(hour.dt * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                const hourlyCard = `
+                    <div class="flex-shrink-0 w-40 p-6 text-center rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 transform hover:scale-105 hover:-translate-y-2 transition-all duration-500 cursor-pointer" style="animation-delay: ${index * 0.1}s">
+                        <p class="text-sm font-medium text-white/80 mb-3">${time}</p>
+                        <div class="relative mb-4">
+                            <img src="https://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png" alt="İkon" class="w-12 h-12 mx-auto filter drop-shadow-lg">
+                        </div>
+                        <p class="text-2xl font-bold mb-2 bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">${Math.round(hour.main.temp)}°C</p>
+                        <p class="text-xs text-white/70 capitalize">${hour.weather[0].description}</p>
+                        <div class="mt-3 flex justify-center items-center gap-2 text-xs text-white/60">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 2a6 6 0 00-6 6c0 1.887-.454 3.665-1.257 5.234a.75.75 0 00.515 1.07 32.91 32.91 0 003.256.508 3.5 3.5 0 006.972 0 32.91 32.91 0 003.256-.508.75.75 0 00.515-1.07A11.717 11.717 0 0116 8a6 6 0 00-6-6z" clip-rule="evenodd" />
+                            </svg>
+                            <span>${hour.main.humidity}%</span>
+                        </div>
+                    </div>
+                `;
+                hourlyForecastContainer.innerHTML += hourlyCard;
+            });
+            
+            // Günlük tahminleri grupla ve oluştur
+            dailyForecastContainer.innerHTML = '';
+            const dailyForecasts = {};
+
+            weatherData.list.forEach(forecast => {
+                const date = new Date(forecast.dt * 1000).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
+                if (!dailyForecasts[date]) {
+                    dailyForecasts[date] = {
+                        min: forecast.main.temp_min,
+                        max: forecast.main.temp_max,
+                        icon: forecast.weather[0].icon,
+                        description: forecast.weather[0].description,
+                        dt: forecast.dt
+                    };
+                } else {
+                    if (forecast.main.temp_min < dailyForecasts[date].min) {
+                        dailyForecasts[date].min = forecast.main.temp_min;
+                    }
+                    if (forecast.main.temp_max > dailyForecasts[date].max) {
+                        dailyForecasts[date].max = forecast.main.temp_max;
+                    }
+                }
+            });
+
+            Object.values(dailyForecasts).forEach((day, index) => {
+                const dayName = getDayName(day.dt, currentLanguage);
+                const dailyCard = `
+                    <div class="daily-forecast-card p-6 text-center rounded-2xl bg-white/8 backdrop-blur-lg border border-white/10 flex flex-col items-center transform hover:scale-105 hover:-translate-y-2 transition-all duration-500 cursor-pointer relative overflow-hidden" style="animation-delay: ${index * 0.1}s">
+                        <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                        <p class="text-lg font-bold mb-3 bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent relative z-10">${dayName}</p>
+                        <div class="relative mb-4 z-10">
+                            <img src="https://openweathermap.org/img/wn/${day.icon}@2x.png" alt="İkon" class="w-16 h-16 mx-auto filter drop-shadow-xl">
+                        </div>
+                        <p class="text-sm text-white/70 mb-4 capitalize relative z-10">${day.description}</p>
+                        <div class="flex items-center justify-between w-full mt-auto relative z-10">
+                            <div class="text-center">
+                                <p class="text-xs text-white/60 mb-1">Max</p>
+                                <p class="text-2xl font-bold">${Math.round(day.max)}°</p>
+                            </div>
+                            <div class="w-px h-8 bg-white/20"></div>
+                            <div class="text-center">
+                                <p class="text-xs text-white/60 mb-1">Min</p>
+                                <p class="text-2xl font-medium text-white/70">${Math.round(day.min)}°</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dailyForecastContainer.innerHTML += dailyCard;
+            });
+        }
+        
+        // Hava durumuna göre arka planı güncelleyen fonksiyon
+        function updateBackground(weatherMain) {
+            const classesToRemove = ['clear-bg', 'rainy-bg', 'snowy-bg', 'foggy-bg'];
+            bodyElement.classList.remove(...classesToRemove);
+
+            switch (weatherMain) {
+                case 'Thunderstorm':
+                case 'Drizzle':
+                case 'Rain':
+                    bodyElement.classList.add('rainy-bg');
+                    break;
+                case 'Snow':
+                    bodyElement.classList.add('snowy-bg');
+                    break;
+                case 'Mist':
+                case 'Smoke':
+                case 'Haze':
+                case 'Dust':
+                case 'Fog':
+                case 'Sand':
+                case 'Ash':
+                case 'Squall':
+                case 'Tornado':
+                    bodyElement.classList.add('foggy-bg');
+                    break;
+                case 'Clear':
+                default:
+                    bodyElement.classList.add('clear-bg');
+                    break;
+            }
+        }
+
+        // Çevrimdışı veriyi kaydetme
+        function saveOfflineData(weatherData, aqiData) {
+            const data = { weatherData, aqiData, timestamp: Date.now() };
+            localStorage.setItem('lastWeatherData', JSON.stringify(data));
+        }
+
+        // Çevrimdışı veriyi yükleme
+        function loadOfflineData() {
+            const lastData = localStorage.getItem('lastWeatherData');
+            if (lastData) {
+                const data = JSON.parse(lastData);
+                renderWeatherData(data.weatherData, data.aqiData);
+                offlineMessage.classList.remove('hidden');
+                startScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+            } else {
+                showError(translations[currentLanguage]['no-favorites']);
+            }
+        }
+
+        // Favorileri localStorage'dan alma
+        function getFavorites() {
+            const favorites = localStorage.getItem('weatherFavorites');
+            return favorites ? JSON.parse(favorites) : [];
+        }
+
+        // Favorileri localStorage'a kaydetme
+        function saveFavorites(favorites) {
+            localStorage.setItem('weatherFavorites', JSON.stringify(favorites));
+        }
+
+        // Favorileri ekrana yazma
+        function renderFavorites() {
+            const favorites = getFavorites();
+            favoritesContainer.innerHTML = '';
+            if (favorites.length === 0) {
+                favoritesContainer.innerHTML = `<p class="text-white/70 text-center col-span-full">${translations[currentLanguage]['no-favorites']}</p>`;
+            } else {
+                favorites.forEach(city => {
+                    const favoriteCard = document.createElement('div');
+                    favoriteCard.className = 'flex items-center justify-between p-3 rounded-xl bg-white/10';
+                    favoriteCard.innerHTML = `
+                        <button class="font-semibold hover:text-sky-300 transition-colors load-favorite-btn" 
+                            data-city="${city.name}" data-lat="${city.coord.lat}" data-lon="${city.coord.lon}">
+                            ${city.name}
+                        </button>
+                        <button class="text-red-400 hover:text-red-500 transition-colors remove-favorite-btn" data-city="${city.name}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                    favoritesContainer.appendChild(favoriteCard);
+                });
+            }
+        }
+
+        // Favori ekleme butonunun durumunu güncelleme
+        function updateFavoriteButtonState() {
+            const favorites = getFavorites();
+            const isFavorited = favorites.some(fav => fav.name === currentCityData.name);
+            if (isFavorited) {
+                addFavoriteBtn.disabled = true;
+                addFavoriteBtn.style.color = 'rgb(100, 116, 139)'; // Tailwind's slate-500
+            } else {
+                addFavoriteBtn.disabled = false;
+                addFavoriteBtn.style.color = 'rgb(103, 232, 249)'; // Tailwind's sky-300
+            }
+        }
+
+        // Favorilere ekleme
+        addFavoriteBtn.addEventListener('click', () => {
+            if (currentCityData) {
+                const favorites = getFavorites();
+                if (!favorites.some(fav => fav.name === currentCityData.name)) {
+                    favorites.push(currentCityData);
+                    saveFavorites(favorites);
+                    renderFavorites();
+                    updateFavoriteButtonState();
+                }
+            }
+        });
+
+        // Favorilerden kaldırma
+        favoritesContainer.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-favorite-btn')) {
+                const cityName = e.target.closest('.remove-favorite-btn').dataset.city;
+                let favorites = getFavorites();
+                favorites = favorites.filter(city => city.name !== cityName);
+                saveFavorites(favorites);
+                renderFavorites();
+                updateFavoriteButtonState();
+            }
+        });
+
+        // Favorilerden şehir yükleme
+        favoritesContainer.addEventListener('click', async (e) => {
+            if (e.target.closest('.load-favorite-btn')) {
+                const cityBtn = e.target.closest('.load-favorite-btn');
+                const lat = cityBtn.dataset.lat;
+                const lon = cityBtn.dataset.lon;
+                loadingState();
+                const weatherData = await getWeatherData({ lat, lon });
+                if (weatherData) {
+                    const aqiData = await getAirQualityData({ lat, lon });
+                    renderWeatherData(weatherData, aqiData);
+                    saveOfflineData(weatherData, aqiData);
+                }
+                loadingState(false);
+            }
+        });
+        
+        // Başlangıç ekranı butonlarını dinle
+        getWeatherBtnStart.addEventListener('click', async () => {
+            const cityName = cityInputStart.value.trim();
+            if (cityName === '') {
+                showError(translations[currentLanguage]['error-404']);
+                return;
+            }
+            loadingState();
+            const weatherData = await getWeatherData({ city: cityName });
+            if (weatherData) {
+                const aqiData = await getAirQualityData({ lat: weatherData.city.coord.lat, lon: weatherData.city.coord.lon });
+                renderWeatherData(weatherData, aqiData);
+                saveOfflineData(weatherData, aqiData);
+                startScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+            }
+            loadingState(false);
+        });
+
+        getLocationBtnStart.addEventListener('click', () => {
+            loadingState();
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const weatherData = await getWeatherData({ lat, lon });
+                    if (weatherData) {
+                        const aqiData = await getAirQualityData({ lat, lon });
+                        renderWeatherData(weatherData, aqiData);
+                        saveOfflineData(weatherData, aqiData);
+                        startScreen.classList.add('hidden');
+                        mainApp.classList.remove('hidden');
+                    }
+                    loadingState(false);
+                }, (error) => {
+                    console.error('Coğrafi konum hatası:', error);
+                    loadingState(false);
+                    showError(translations[currentLanguage]['error-geo']);
+                });
+            } else {
+                loadingState(false);
+                showError(translations[currentLanguage]['error-geo-unsupported']);
+            }
+        });
+
+
+        // Tıklama olaylarını dinle
+        getWeatherBtn.addEventListener('click', async () => {
+            const cityName = cityInput.value.trim();
+
+            if (cityName === '') {
+                showError(translations[currentLanguage]['error-404']);
+                return;
+            }
+
+            loadingState();
+            const weatherData = await getWeatherData({ city: cityName });
+            
+            if (weatherData) {
+                const aqiData = await getAirQualityData({ lat: weatherData.city.coord.lat, lon: weatherData.city.coord.lon });
+                renderWeatherData(weatherData, aqiData);
+                saveOfflineData(weatherData, aqiData);
+            }
+            loadingState(false);
+        });
+
+        getLocationBtn.addEventListener('click', () => {
+            loadingState();
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const weatherData = await getWeatherData({ lat, lon });
+                    if (weatherData) {
+                        const aqiData = await getAirQualityData({ lat, lon });
+                        renderWeatherData(weatherData, aqiData);
+                        saveOfflineData(weatherData, aqiData);
+                    }
+                    loadingState(false);
+                }, (error) => {
+                    console.error('Coğrafi konum hatası:', error);
+                    loadingState(false);
+                    showError(translations[currentLanguage]['error-geo']);
+                });
+            } else {
+                loadingState(false);
+                showError(translations[currentLanguage]['error-geo-unsupported']);
+            }
+        });
+
+        // Yükleme durumunu yönetme fonksiyonu
+        function loadingState(isLoading = true) {
+            if (isLoading) {
+                weatherResult.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // Hata mesajını gösterme fonksiyonu
+        function showError(message) {
+            errorMessage.querySelector('p').textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Canlı saat ve tarihi güncelleyen fonksiyon
+        function updateLiveDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+            const formattedDate = now.toLocaleDateString(currentLanguage, options);
+            liveDatetimeElement.textContent = formattedDate;
+        }
+
+    </script>
+</body>
+</html>
+
+
