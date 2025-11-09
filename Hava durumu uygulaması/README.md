@@ -1,2 +1,2 @@
-# Hava-Durumu
-https://ahmetaktass.github.io/Hava-Durumu/
+# Hava-Durum
+Lenon_studio develpore
